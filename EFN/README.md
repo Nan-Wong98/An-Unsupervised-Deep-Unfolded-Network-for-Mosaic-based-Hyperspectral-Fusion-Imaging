@@ -1,9 +1,6 @@
 # 📖 Introduction
 
-This competing approach consists of two sequential stages:
-
-1. **Demosaicing** using **LSAN**
-2. **Pansharpening** using **VBPN**
+Compared to competing methods, this proposed method is a one-step method.
 
 ---
 
@@ -27,72 +24,55 @@ Dataset/
 
 The command lines for **training**, **generation**, **testing**, and **visualization** are provided below.
 
+
 # 1. Train
 ## 🟢 CAVE 
-### demosaic
 ```
-python train_demosaic.py --idx 1 --data_path ../../DataSet --dataset CAVE --epochs 1000 --train_size 64 --stride 32 --batch_size 16 --lr_decay --save_freq 50
-```
-
-### pansharpening
-```
-python train_pansharpening.py --idx 2 --data_path ../../DataSet --dataset CAVE --epochs 100 --train_size 64 --stride 32 --batch_size 16  --resume_demosaic ./1/model/best_994.pth --lr_decay --save_freq 5 --device 0
+python train_simulate.py --idx 1 --data_path ../../DataSet --dataset CAVE --epochs 1000 --train_size 64 --stride 32 --batch_size 16 --lr_decay --save_freq 50 --device 7 --shared --iters 2
 ```
 
 ## 🔵 Pavia
-### demosaic
 ```
-python train_demosaic.py --idx 3 --data_path ../../DataSet --dataset pavia --epochs 400 --train_size 32 --stride 8 --batch_size 8 --lr_decay --save_freq 5 --device 5
-```
-
-### pansharpening
-```
-python train_pansharpening.py --idx 4 --data_path ../../DataSet --dataset pavia --epochs 20 --train_size 64 --stride 16 --batch_size 8 --resume_demosaic ./3/model/best_375.pth --lr_decay --save_freq 5 --device 2
+python train.py --idx 2 --data_path ../../DataSet --dataset pavia --epochs 100 --train_size 64 --stride 16 --batch_size 8 --lr_decay --save_freq 10 --device 7
 ```
 
 ## 🟠 Chikusei
-### demosaic
 ```
-python train_demosaic.py --idx 5 --data_path ../../DataSet --dataset chikusei --epochs 1000 --train_size 64 --stride 32 --batch_size 16 --lr_decay --save_freq 50 --device 2
-```
-
-### pansharpening
-```
-python train_pansharpening.py --idx 6 --data_path ../../DataSet --dataset chikusei --epochs 10 --train_size 64 --stride 64 --batch_size 16  --resume_demosaic ./5/model/best_991.pth --lr_decay --save_freq 1 --device 1
+python train.py --idx 3 --data_path ../../DataSet --dataset chikusei --epochs 200 --train_size 64 --stride 32 --batch_size 16 --lr_decay --save_freq 20 --device 6
 ```
 
 # 2. Generate
 ## 🟢 CAVE
 ### generate all
 ```
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset CAVE --load_demosaic_model ./1/model/best_994.pth --load_ps_model ./2/model/best_85.pth
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset CAVE --load_model ./1/model/best_958.pth
 ```
 
 ### generate single
 ```
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset CAVE --load_demosaic_model ./1/model/best_994.pth --load_ps_model ./2/model/best_85.pth --data_id jelly_beans_ms.mat
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset CAVE --load_model ./1/model/best_958.pth --data_id jelly_beans_ms.mat
 ```
 
 ## 🔵 Pavia
 ### generate all
 ```
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset pavia --load_demosaic_model ./3/model/best_375.pth --load_ps_model ./4/model/best_2.pth
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset pavia --load_model ./2/model/best_30.pth
 ```
 
 ### generate single
 ```
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset pavia --load_demosaic_model ./3/model/best_375.pth --load_ps_model ./4/model/best_2.pth --data_id 1.mat
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset pavia --load_model ./2/model/best_30.pth --data_id 1.mat
 ```
 
 ## 🟠 Chikusei
 ### generate all
 ```
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset chikusei --load_demosaic_model ./5/model/best_991.pth --load_ps_model ./6/model/best_7.pth
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset chikusei --load_model ./3/model/best_189.pth
 ```
 
 ### generate single
 ```
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset chikusei --load_demosaic_model ./5/model/best_991.pth --load_ps_model ./6/model/best_7.pth --data_id 2.mat
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset chikusei --load_model ./3/model/best_189.pth --data_id 2.mat
 ```
 
 # 3. test
@@ -119,7 +99,7 @@ python test.py --idx 1 --data_path ./pavia/1/result/mat/ --data_id 1.mat
 ## 🟠 Chikusei
 ### test all
 ```
-python test.py --idx 1 --data_path ./chikusei/1/result/mat
+python test.py --idx 1 --data_path ./chikusei/1/result/mat/
 ```
 
 ### test single

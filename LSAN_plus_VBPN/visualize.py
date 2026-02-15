@@ -18,7 +18,7 @@ def visual_rgb(args):
         os.makedirs(args.save_path)
 
     print(f"Start to visualize RGB: {files}")
-    rgb_bands = [0, 1, 13]
+    rgb_bands = [2, 7, 12]
     for file in tqdm.tqdm(files):
         id = file.split(".")[0]
         file = os.path.join(args.mat_path, file)
@@ -48,8 +48,8 @@ def visual_rgb(args):
         else:
             raise ValueError(f"Incorrect data_type: {args.data_type}.")
 
-        if mat.dtype == numpy.int16:
-            rgb = numpy.clip(numpy.round(mat / 2**12 * 2 * 255), 0, 255)
+        if "chikusei" in args.mat_path:
+            rgb = numpy.clip(numpy.round(mat*2*255), 0, 255)
         else:
             rgb = numpy.clip(numpy.round(mat*255), 0, 255)
         cv2.imwrite(os.path.join(args.save_path, name), rgb)

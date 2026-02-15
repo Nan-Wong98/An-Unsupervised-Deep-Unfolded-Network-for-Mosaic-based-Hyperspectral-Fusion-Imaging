@@ -8,7 +8,6 @@ import pickle
 import tqdm
 from tqdm.contrib import tzip
 import h5py
-import pyexr
 import utils
 from scipy import signal
 import random
@@ -79,22 +78,16 @@ class MakeDatasetforDemosaic(Dataset):
             print("Cache file not found. Generate it from: ", base_path)
             hrms_imgs = os.listdir(base_path)
 
-            if type == "train":
-                numpy.random.seed(42)
-            elif type == "test":
-                numpy.random.seed(22)
             for hrms_name in tqdm.tqdm(hrms_imgs):
                 if args.dataset == "CAVE":
                     hrms = scio.loadmat(os.path.join(base_path, hrms_name))["b"]
-                elif args.dataset == "ICVL":
-                    hrms = h5py.File(os.path.join(base_path, hrms_name))["rad"][:]
-                    hrms = numpy.rot90(hrms.transpose(2, 1, 0))
-                    hrms /= hrms.max((0, 1))
-                elif args.dataset == "Kaist":
-                    hrms = pyexr.open(os.path.join(base_path, hrms_name)).get()
-                hrms_select_bands = hrms[:hrms.shape[0]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
-                                        :hrms.shape[1]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
-                                        12:28].astype(numpy.float32)
+                    hrms = hrms[:, :, 12:28]
+                elif args.dataset == "pavia":
+                    hrms = scio.loadmat(os.path.join(base_path, hrms_name))["pavia"]
+                elif args.dataset == "chikusei":
+                    hrms = scio.loadmat(os.path.join(base_path, hrms_name))["chikusei"]
+                hrms = hrms[:hrms.shape[0]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
+                                        :hrms.shape[1]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio)].astype(numpy.float32)
 
                 MSFA = numpy.array([[0, 1, 2, 3],
                                     [4, 5, 6, 7],
@@ -102,7 +95,7 @@ class MakeDatasetforDemosaic(Dataset):
                                     [12, 13, 14, 15]])
                 # MS simulate
                 # downsampling
-                ms_blur_tensor = torch.from_numpy(hrms_select_bands).permute(2, 0, 1).unsqueeze(0)
+                ms_blur_tensor = torch.from_numpy(hrms).permute(2, 0, 1).unsqueeze(0)
                 lrms_tensor = torch.nn.functional.avg_pool2d(ms_blur_tensor, 2, 2)
                 lrms = lrms_tensor[0].permute(1, 2, 0).numpy()
 
@@ -112,7 +105,7 @@ class MakeDatasetforDemosaic(Dataset):
                 # PAN simulate
                 spe_res = numpy.array([1., 1, 2, 4, 8, 9, 10, 12, 16, 12, 10, 9, 7, 3, 2, 1])
                 spe_res /= spe_res.sum()
-                pan = numpy.sum(hrms_select_bands * spe_res, axis=-1, keepdims=True)
+                pan = numpy.sum(hrms * spe_res, axis=-1, keepdims=True)
 
                 if type == "train":
                     mosaic_patches = crop_to_patch(mosaic, args.train_size, args.stride)
@@ -169,22 +162,16 @@ class MakeDatasetforPansharpening(Dataset):
             print("Cache file not found. Generate it from: ", base_path)
             hrms_imgs = os.listdir(base_path)
 
-            if type == "train":
-                numpy.random.seed(42)
-            elif type == "test":
-                numpy.random.seed(22)
             for hrms_name in tqdm.tqdm(hrms_imgs):
                 if args.dataset == "CAVE":
                     hrms = scio.loadmat(os.path.join(base_path, hrms_name))["b"]
-                elif args.dataset == "ICVL":
-                    hrms = h5py.File(os.path.join(base_path, hrms_name))["rad"][:]
-                    hrms = numpy.rot90(hrms.transpose(2, 1, 0))
-                    hrms /= hrms.max((0, 1))
-                elif args.dataset == "Kaist":
-                    hrms = pyexr.open(os.path.join(base_path, hrms_name)).get()
-                hrms_select_bands = hrms[:hrms.shape[0]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
-                                        :hrms.shape[1]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
-                                        12:28].astype(numpy.float32)
+                    hrms = hrms[:, :, 12:28]
+                elif args.dataset == "pavia":
+                    hrms = scio.loadmat(os.path.join(base_path, hrms_name))["pavia"]
+                elif args.dataset == "chikusei":
+                    hrms = scio.loadmat(os.path.join(base_path, hrms_name))["chikusei"]
+                hrms = hrms[:hrms.shape[0]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
+                            :hrms.shape[1]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio)].astype(numpy.float32)
 
                 MSFA = numpy.array([[0, 1, 2, 3],
                                     [4, 5, 6, 7],
@@ -192,7 +179,7 @@ class MakeDatasetforPansharpening(Dataset):
                                     [12, 13, 14, 15]])
                 # MS simulate
                 # downsampling
-                ms_blur_tensor = torch.from_numpy(hrms_select_bands).permute(2, 0, 1).unsqueeze(0)
+                ms_blur_tensor = torch.from_numpy(hrms).permute(2, 0, 1).unsqueeze(0)
                 lrms_tensor = torch.nn.functional.avg_pool2d(ms_blur_tensor, 2, 2)
                 lrms = lrms_tensor[0].permute(1, 2, 0).numpy()
 
@@ -224,7 +211,7 @@ class MakeDatasetforPansharpening(Dataset):
                 ## PAN simulate
                 spe_res = numpy.array([1., 1, 2, 4, 8, 9, 10, 12, 16, 12, 10, 9, 7, 3, 2, 1])
                 spe_res /= spe_res.sum()
-                pan = numpy.sum(hrms_select_bands * spe_res, axis=-1, keepdims=True)
+                pan = numpy.sum(hrms * spe_res, axis=-1, keepdims=True)
 
                 spatial_ratio = pan.shape[0] // demosaic.shape[0]
                 if type == "train":
@@ -235,7 +222,7 @@ class MakeDatasetforPansharpening(Dataset):
                 elif type == "test":
                     self.lrms.append(demosaic)
                     self.pan.append(pan)
-                    self.hrms.append(hrms_select_bands)
+                    self.hrms.append(hrms)
             
             with open(cache_path, "wb") as f:
                 pickle.dump([self.lrms, self.pan, self.hrms], f)

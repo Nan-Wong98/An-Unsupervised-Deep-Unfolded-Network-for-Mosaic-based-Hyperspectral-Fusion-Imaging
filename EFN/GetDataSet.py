@@ -9,9 +9,8 @@ import tqdm
 from tqdm.contrib import tzip
 import h5py
 import utils
-from scipy import signal
-import PPID
-import copy
+import scipy
+import math, random
 
 def crop_to_patch(img, size, stride):
     H, W = img.shape[:2]
@@ -23,12 +22,11 @@ def crop_to_patch(img, size, stride):
                 patches.append(patch)
     return patches
 
-class MakeDatasetforPansharpening(Dataset):
-    def __init__(self, args, type="train", demosaic_net=None):
-        self.train_size = args.train_size
+class MakeDataset(Dataset):
+    def __init__(self, args, type="train"):
         cache_path = os.path.join(args.cache_path, type + "_cache.pkl")
         if not os.path.exists(cache_path):
-            self.mosaic, self.lrms, self.pan, self.hrms = [], [], [], []
+            self.mosaic, self.pan, self.hrms = [], [], []
             base_path = os.path.join(args.data_path, args.dataset, type)
             print("Cache file not found. Generate it from: ", base_path)
             hrms_imgs = os.listdir(base_path)
@@ -48,7 +46,7 @@ class MakeDatasetforPansharpening(Dataset):
                                     [4, 5, 6, 7],
                                     [8, 9, 10, 11],
                                     [12, 13, 14, 15]])
-                
+                                    
                 # MS simulate
                 # downsampling
                 ms_blur_tensor = torch.from_numpy(hrms).permute(2, 0, 1).unsqueeze(0)
@@ -62,49 +60,44 @@ class MakeDatasetforPansharpening(Dataset):
                 spe_res = numpy.array([1., 1, 2, 4, 8, 9, 10, 12, 16, 12, 10, 9, 7, 3, 2, 1])
                 spe_res /= spe_res.sum()
                 pan = numpy.sum(hrms * spe_res, axis=-1, keepdims=True)
-
-                demosaic = PPID.PPID(mosaic, MSFA)
-
-                spatial_ratio = pan.shape[0] // demosaic.shape[0]
+                
+                spatial_ratio = pan.shape[0] // mosaic.shape[0]
                 if type == "train":
-                    demosaic_patches = crop_to_patch(demosaic, args.train_size//spatial_ratio, args.stride//spatial_ratio)
+                    mosaic_patches = crop_to_patch(mosaic, args.train_size//spatial_ratio, args.stride//spatial_ratio)
                     pan_patches = crop_to_patch(pan, args.train_size, args.stride)
 
-                    self.lrms += demosaic_patches
+                    self.mosaic += mosaic_patches
                     self.pan += pan_patches
 
                 elif type == "test":
                     self.mosaic.append(mosaic)
-                    self.lrms.append(demosaic)
                     self.pan.append(pan)
                     self.hrms.append(hrms)
 
             with open(cache_path, "wb") as f:
-                pickle.dump([self.mosaic, self.lrms, self.pan, self.hrms], f)
+                pickle.dump([self.mosaic, self.pan, self.hrms], f)
 
         print("Load data from cache file: ", cache_path)
         with open(cache_path, "rb") as f:
-            self.mosaic, self.lrms, self.pan, self.hrms = pickle.load(f)
+            self.mosaic, self.pan, self.hrms = pickle.load(f)
 
     def __len__(self):
-        return len(self.lrms)
+        return len(self.mosaic)
 
     def __getitem__(self, index):
         if self.hrms != []:
             mosaic = torch.from_numpy(self.mosaic[index].astype(numpy.float32))
             mosaic = mosaic.permute(2, 0, 1)
-            lrms = torch.from_numpy(self.lrms[index].astype(numpy.float32))
-            lrms = lrms.permute(2, 0, 1)
             pan = torch.from_numpy(self.pan[index].astype(numpy.float32))
             pan = pan.permute(2, 0, 1)
             hrms = torch.from_numpy(self.hrms[index].astype(numpy.float32))
             hrms = hrms.permute(2, 0, 1)
 
-            return mosaic, lrms, pan, hrms
+            return mosaic, pan, hrms
         else:
-            lrms = torch.from_numpy(self.lrms[index].astype(numpy.float32))
-            lrms = lrms.permute(2, 0, 1)
+            mosaic = torch.from_numpy(self.mosaic[index].astype(numpy.float32))
+            mosaic = mosaic.permute(2, 0, 1)
             pan = torch.from_numpy(self.pan[index].astype(numpy.float32))
             pan = pan.permute(2, 0, 1)
 
-            return lrms, pan
+            return mosaic, pan

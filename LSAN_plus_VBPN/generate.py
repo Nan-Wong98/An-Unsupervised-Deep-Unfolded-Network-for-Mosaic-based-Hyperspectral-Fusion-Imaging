@@ -9,7 +9,6 @@ from tqdm.contrib import tzip
 import tqdm
 import utils
 import h5py
-import pyexr
 import random
 
 numpy.random.seed(22)
@@ -67,20 +66,17 @@ def main(args):
         data_dir = os.path.join(data_path, data_name)
         if args.dataset == "CAVE":
             hrms = scio.loadmat(data_dir)['b']
-        elif args.dataset == "ICVL":
-            hrms = h5py.File(data_dir)["rad"][:]
-            hrms = numpy.rot90(hrms.transpose(2, 1, 0))
-            hrms /= hrms.max((0, 1))
-        elif args.dataset == "Kaist":
-            hrms = pyexr.open(data_dir).get()
-        hrms_select_bands = hrms[:hrms.shape[0]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
-                                :hrms.shape[1]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
-                                12:28].astype(numpy.float32)
-
+            hrms = hrms[:, :, 12:28]
+        elif args.dataset == "pavia":
+            hrms = scio.loadmat(data_dir)["pavia"]
+        elif args.dataset == "chikusei":
+            hrms = scio.loadmat(data_dir)["chikusei"]
+        hrms = hrms[:hrms.shape[0]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio),
+                    :hrms.shape[1]//(args.msfa_size*args.spatial_ratio)*(args.msfa_size*args.spatial_ratio)].astype(numpy.float32)
+        
         # MS simulate
-
         # downsampling
-        ms_blur_tensor = torch.from_numpy(hrms_select_bands).permute(2, 0, 1).unsqueeze(0)
+        ms_blur_tensor = torch.from_numpy(hrms).permute(2, 0, 1).unsqueeze(0)
         lrms_tensor = torch.nn.functional.avg_pool2d(ms_blur_tensor, 2, 2)
         lrms = lrms_tensor[0].permute(1, 2, 0).numpy()
 
@@ -90,11 +86,11 @@ def main(args):
         # PAN simulate
         spe_res = numpy.array([1., 1, 2, 4, 8, 9, 10, 12, 16, 12, 10, 9, 7, 3, 2, 1])
         spe_res /= spe_res.sum()
-        pan = numpy.sum(hrms_select_bands * spe_res, axis=-1, keepdims=True)
+        pan = numpy.sum(hrms * spe_res, axis=-1, keepdims=True)
 
         mosaics.append(mosaic)
         pans.append(pan)
-        gts.append(hrms_select_bands)
+        gts.append(hrms)
         ids.append(data_name.split(".")[0])
 
     dir_mat = os.path.join(dir_idx, "result", "mat")

@@ -1,4 +1,4 @@
-from model import Mpattern_opt, Generator
+from model import Network, Degrade_R, degrade_dm
 import torch
 import os
 import numpy
@@ -13,18 +13,6 @@ import random
 
 numpy.random.seed(22)
 
-def input_matrix_wpn(inH, inW, msfa_size):
-
-    h_offset_coord = torch.zeros(inH, inW, 1)
-    w_offset_coord = torch.zeros(inH, inW, 1)
-    for i in range(0,msfa_size):
-        h_offset_coord[i::msfa_size, :, 0] = (i+1)/msfa_size
-        w_offset_coord[:, i::msfa_size, 0] = (i+1)/msfa_size
-
-    pos_mat = torch.cat((h_offset_coord, w_offset_coord), 2)
-    pos_mat = pos_mat.contiguous().view(1, -1, 2)
-    return pos_mat
-
 def main(args):
     dir_dataset = os.path.join("./", args.dataset)
     if not os.path.exists(dir_dataset):
@@ -36,19 +24,21 @@ def main(args):
 
     device = "cpu" if args.cpu == True else f"cuda:{args.device}"
 
-    demosaic_net, ps_net = Mpattern_opt(args), Generator(args)
-    if args.load_ps_model == "" or args.load_ps_model == None:
-        print("==> No demosaicing_net checkpoint loaded!")
-    else:
-        print("==> Load demosaicing_net checkpoint: {}".format(args.load_demosaic_model))
-        demosaic_net.load_state_dict(torch.load(args.load_demosaic_model, map_location="cpu"), strict=False)
-        print("==> Load pansharpening_net checkpoint: {}".format(args.load_ps_model))
-        ps_net.load_state_dict(torch.load(args.load_ps_model, map_location="cpu")["psnet"], strict=False)
+    fuse_net = Network(args)
+    degrade_r = Degrade_R(args)
 
-    ps_net = ps_net.to(device)
-    ps_net.eval()
-    demosaic_net = demosaic_net.to(device)
-    demosaic_net.eval()
+    if args.load_model == "":
+        print("==> No fuse_net checkpoint loaded!")
+    else:
+        print("==> Load fuse_net checkpoint: {}".format(args.load_model))
+        csd = torch.load(args.load_model, map_location="cpu")
+        fuse_net.load_state_dict(csd["fuse_net"], strict=False)
+        degrade_r.load_state_dict(csd[f"degrade_r"], strict=False)
+        
+    fuse_net = fuse_net.to(device)
+    fuse_net.eval()
+    degrade_r = degrade_r.to(device)
+    degrade_r.eval()
 
     data_path = os.path.join(args.data_path, args.dataset, "test")
     ids, mosaics, pans, gts = [], [], [], []
@@ -103,41 +93,25 @@ def main(args):
     dir_mat = os.path.join(dir_idx, "result", "mat")
     if not os.path.exists(dir_mat):
         os.makedirs(dir_mat)
-    print("Start to generate the results!")
-
-    MSFA = numpy.array([[0, 1, 2, 3],
-                        [4, 5, 6, 7],
-                        [8, 9, 10, 11],
-                        [12, 13, 14, 15]])
+        
     for cnt, (idx, mosaic, pan) in enumerate(tqdm.tqdm(tzip(ids, mosaics, pans))):
         with torch.no_grad():
             try:
                 mosaic_tensor = torch.from_numpy(mosaic.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0).to(device)
                 pan_tensor = torch.from_numpy(pan.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0).to(device)
-                scale_coord_map = input_matrix_wpn(mosaic_tensor.shape[2], mosaic_tensor.shape[3], MSFA.shape[0]).to(mosaic_tensor.device)
-                mosaic_up = torch.zeros(mosaic_tensor.shape[0], MSFA.shape[0]*MSFA.shape[1], mosaic_tensor.shape[2], mosaic_tensor.shape[3]).to(mosaic_tensor.device)
-                for i in range(MSFA.shape[0]):
-                    for j in range(MSFA.shape[1]):
-                        mosaic_up[:, i*MSFA.shape[1]+j, i::MSFA.shape[0], j::MSFA.shape[1]] = mosaic_tensor[:, 0, i::MSFA.shape[0], j::MSFA.shape[1]]
-                demosaic_tensor = demosaic_net([mosaic_up, mosaic_tensor], scale_coord_map)
-                demosaic = demosaic_tensor[0].permute(1, 2, 0).detach().cpu().numpy()
-
-                hrms_tensor = ps_net(demosaic_tensor, pan_tensor)
+                hrms_tensor = fuse_net(mosaic_tensor, pan_tensor).detach()
             except:
                 mosaic_tensor = torch.from_numpy(mosaic.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0).cpu()
                 pan_tensor = torch.from_numpy(pan.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0).cpu()
-                scale_coord_map = input_matrix_wpn(mosaic_tensor.shape[2], mosaic_tensor.shape[3], MSFA.shape[0]).to(mosaic_tensor.device)
-                mosaic_up = torch.zeros(mosaic_tensor.shape[0], MSFA.shape[0]*MSFA.shape[1], mosaic_tensor.shape[2], mosaic_tensor.shape[3]).to(mosaic_tensor.device)
-                for i in range(MSFA.shape[0]):
-                    for j in range(MSFA.shape[1]):
-                        mosaic_up[:, i*MSFA.shape[1]+j, i::MSFA.shape[0], j::MSFA.shape[1]] = mosaic_tensor[:, 0, i::MSFA.shape[0], j::MSFA.shape[1]]
-                demosaic_tensor = demosaic_net([mosaic_up, mosaic_tensor], scale_coord_map)
-                demosaic = demosaic_tensor[0].permute(1, 2, 0).detach().cpu().numpy()
+                fuse_net = fuse_net.cpu()
+                degrade_r = degrade_r.cpu()
+                hrms_tensor = fuse_net(mosaic_tensor, pan_tensor).detach()
 
-                ps_net = ps_net.cpu()
-                hrms_tensor = ps_net(demosaic_tensor, pan_tensor)
-                ps_net = ps_net.to(device)
+                fuse_net = fuse_net.to(device)
+                degrade_r = degrade_r.to(device)
+
             hrms_tensor = hrms_tensor.detach()[0].cpu()
+
         hrms = hrms_tensor.permute(1, 2, 0).numpy()
 
         if args.mosaic_save == True:
@@ -152,18 +126,15 @@ def main(args):
             if not os.path.exists(os.path.join(dir_mat, "pan")):
                 os.mkdir(os.path.join(dir_mat, "pan"))
             scio.savemat(os.path.join(dir_mat, "pan", f"{idx}.mat"), {'pan': pan})
-        if args.demosaic_save == True:
-            if not os.path.exists(os.path.join(dir_mat, "demosaic")):
-                os.mkdir(os.path.join(dir_mat, "demosaic"))
-            scio.savemat(os.path.join(dir_mat, "demosaic", f"{idx}.mat"), {'demosaic': demosaic})
         if args.gt_save == True:
             gt = gts[cnt]
             if not os.path.exists(os.path.join(dir_mat, "gt")):
                 os.mkdir(os.path.join(dir_mat, "gt"))
             scio.savemat(os.path.join(dir_mat, "gt", f"{idx}.mat"), {'gt': gt})
         if not os.path.exists(os.path.join(dir_mat, "fused")):
-                os.mkdir(os.path.join(dir_mat, "fused"))
+            os.mkdir(os.path.join(dir_mat, "fused"))
         scio.savemat(os.path.join(dir_mat, "fused", f"{idx}.mat"), {'fused': hrms})
+
     
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Test')
@@ -180,8 +151,7 @@ if __name__ == '__main__':
     parser.add_argument('--data_path', type=str, default="../DataSet/", help='Path of the dataset.')
     parser.add_argument('--data_id', type=str, default=[], nargs="+",
                         help='Index of which data to be tested. If empty, then all be selected.')
-    parser.add_argument('--load_ps_model', type=str, default='', help='The pansharpening model to be loaded.')
-    parser.add_argument('--load_demosaic_model', type=str, default='', help='The demosaicing model to be loaded.')
+    parser.add_argument('--load_model', type=str, default='', help='The pandemosaicing model to be loaded.')
     parser.add_argument('--cpu', action='store_true', default=False, help='Determine whether to cpu.')
     parser.add_argument('--device', type=str, default='0', help='Device to train the model.')
 

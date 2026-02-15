@@ -1,126 +1,195 @@
-# Train
-## CAVE
-``` 
-# pansharpening
-python train_pansharpening.py --idx 2 --data_path ../../DataSet --dataset CAVE --epochs 1000 --train_size 64 --stride 32 --batch_size 16 --lr_decay --save_freq 50 --device 3
+# 📖 Introduction
+
+This competing approach consists of two sequential stages:
+
+1. **Demosaicing** using **PPID**
+2. **Pansharpening** using **PanGAN**
+
+Notably, the demosaicing network does **not** require training.  
+Only the pansharpening network (**PanGAN**) is trained in this framework.
+
+---
+
+## 📂 Dataset Structure
+
+The dataset is organized as follows:
+```
+Dataset/
+├── CAVE/
+│ ├── train/
+│ └── test/
+├── ICVL/
+│ ├── train/
+│ └── test/
+└── real_world/
+├── train/
+└── test/
 ```
 
-## ICVL
+## 🚀 Usage
+
+The command lines for **training**, **generation**, **testing**, and **visualization** are provided below.
+
+# 1. Train
+## 🟢 CAVE 
+### pansharpening
 ```
-# pansharpening
-python train_pansharpening.py --idx 4 --data_path ../../DataSet --dataset ICVL --epochs 20 --train_size 64 --stride 64 --batch_size 16 --lr_decay --save_freq 5 --device 6
+python train_pansharpening_simulate.py --idx 2 --data_path ../../DataSet --dataset CAVE --epochs 1000 --train_size 64 --stride 32 --batch_size 16 --lr_decay --save_freq 50 --device 3
 ```
 
-## Kaist
+## 🔵 Pavia
+### pansharpening
 ```
-# pansharpening
-python train_pansharpening.py --idx 6 --data_path ../../DataSet --dataset Kaist --epochs 40 --train_size 64 --stride 64 --batch_size 16 --lr_decay --save_freq 5 --device 5
+python train_pansharpening.py --idx 4 --data_path ../../DataSet --dataset pavia --epochs 50 --train_size 64 --stride 16 --batch_size 8 --lr_decay --save_freq 5 --device 4
 ```
 
-# Generate
-## CAVE
+## 🟠 Chikusei
+### pansharpening
 ```
-# all
+python train_pansharpening.py --idx 6 --data_path ../../DataSet --dataset chikusei --epochs 100 --train_size 64 --stride 32 --batch_size 16 --lr_decay --save_freq 5 --device 0
+```
+
+# 2. Generate
+## 🟢 CAVE
+### generate all
+```
 python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset CAVE --load_ps_model ./2/model/best_758.pth
-
-# assign
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet --dataset CAVE --load_ps_model ./2/model/best_758.pth --data_id jelly_beans_ms.mat
 ```
 
-## ICVL
+### generate single
 ```
-# all
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset ICVL --load_ps_model ./4/model/best_40.pth
-
-# assign
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet --dataset ICVL --load_ps_model ./4/model/best_40.pth --data_id peppers_0503-1330.mat
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset CAVE --load_ps_model ./2/model/best_758.pth --data_id jelly_beans_ms.mat
 ```
 
-## Kaist
+## 🔵 Pavia
+### generate all
 ```
-# all
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset Kaist --load_ps_model ./6/model/best_38.pth 
-
-# assign
-python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet --dataset Kaist --load_ps_model ./6/model/best_38.pth --data_id scene21_reflectance.exr
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset pavia --load_ps_model ./4/model/best_37.pth
 ```
 
-# test
-## Cave
+### generate single
 ```
-# test all
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset pavia --load_ps_model ./4/model/best_37.pth --data_id 1.mat
+```
+
+## 🟠 Chikusei
+### generate all
+```
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset chikusei --load_ps_model ./6/model/best_90.pth
+```
+
+### generate single
+```
+python generate.py --idx 1 --mosaic_save --pan_save --demosaic_save --gt_save --data_path ../../DataSet/ --dataset chikusei --load_ps_model ./6/model/best_90.pth --data_id 2.mat
+```
+
+# 3. test
+## 🟢 Cave
+### test all
+```
 python test.py --idx 1 --data_path ./CAVE/1/result/mat/
+```
 
-# test assign
+### test single
+```
 python test.py --idx 1 --data_path ./CAVE/1/result/mat/ --data_id jelly_beans_ms.mat
 ```
-## ICVL
+## 🔵 Pavia
+### test all
 ```
-# test all
-python test.py --idx 1 --data_path ./ICVL/1/result/mat/
-
-# test assign
-python test.py --idx 1 --data_path ./ICVL/1/result/mat/ --data_id peppers_0503-1330.mat
-```
-## Kaist
-```
-# test all
-python test.py --idx 1 --data_path ./Kaist/1/result/mat/
-
-# test assign
-python test.py --idx 1 --data_path ./Kaist/1/result/mat/ --data_id scene21_reflectance.mat
+python test.py --idx 1 --data_path ./pavia/1/result/mat/
 ```
 
-# Visualize
-## Cave
+### test single
 ```
-# fused
+python test.py --idx 1 --data_path ./pavia/1/result/mat/ --data_id 1.mat
+```
+## 🟠 Chikusei
+### test all
+```
+python test.py --idx 1 --data_path ./chikusei/1/result/mat/
+```
+
+### test single
+```
+python test.py --idx 1 --data_path ./chikusei/1/result/mat/ --data_id 2.mat
+```
+
+# 4. Visualize
+## 🟢 CAVE
+### visualize fused
+```
 python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./CAVE/1/result/mat/fused/ --save_path ./CAVE/1/result/rgb/fused/ --data_type fused --data_id jelly_beans_ms.mat --detach --detach_size 50 50  --detach_coordinate 180 180 180 180 --boxcolor b --boxwidth 2
+```
 
-# diffmap
+### visualize diffmap
+```
 python visualize.py --visual_task diffmap --spatial_ratio 8 --mat_path ./CAVE/1/result/mat/fused/ --mat_path_for_diff ./CAVE/1/result/mat/gt/ --save_path ./CAVE/1/result/rgb/diffmap/ --data_id jelly_beans_ms.mat --detach --detach_size 50 50  --detach_coordinate 180 180 180 180 --boxcolor b --boxwidth 2 --mae_level 64 --sam_level 64
+```
 
-# upmosaic
-python visualize.py --visual_task rgb --spatial_ratio 8 --data_type upmosaic --mat_path ./CAVE/1/result/mat/mosaic/ --save_path ./CAVE/1/result/rgb/upmosaic/ --data_id jelly_beans_ms.mat --detach --detach_size 50 50  --detach_coordinate 180 180 180 180 --boxcolor b --boxwidth 2 --data_type upmosaic
+### visualize upmosaic
+```
+python visualize.py --visual_task rgb --spatial_ratio 8 --data_type upmosaic --mat_path ./CAVE/1/result/mat/mosaic/ --save_path ./CAVE/1/result/rgb/upmosaic/ --data_type upmosaic --data_id jelly_beans_ms.mat --detach --detach_size 50 50  --detach_coordinate 180 180 180 180 --boxcolor b --boxwidth 2
+```
 
-# pan
+### visualize pan
+```
 python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./CAVE/1/result/mat/pan/ --save_path ./CAVE/1/result/rgb/pan/ --data_type pan --data_id jelly_beans_ms.mat --detach --detach_size 50 50  --detach_coordinate 180 180 180 180 --boxcolor b --boxwidth 2
+```
 
-# gt
+### visualize gt
+```
 python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./CAVE/1/result/mat/gt/ --save_path ./CAVE/1/result/rgb/gt/ --data_type mosaic --data_id jelly_beans_ms.mat --detach --detach_size 50 50  --detach_coordinate 180 180 180 180 --boxcolor b --boxwidth 2
-``` 
-
-## ICVL
-```
-# fused
-python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./ICVL/1/result/mat/fused/ --save_path ./ICVL/1/result/rgb/fused/ --data_type fused --data_id peppers_0503-1330.mat --detach --detach_size 128 128 --detach_coordinate 400 350 400 350 --boxcolor b --boxwidth 5  
-
-# diffmap
-python visualize.py --visual_task diffmap --spatial_ratio 8 --mat_path ./ICVL/1/result/mat/fused/ --mat_path_for_diff ./ICVL/1/result/mat/gt/ --save_path ./ICVL/1/result/rgb/diffmap/ --data_id peppers_0503-1330.mat --detach --detach_size 128 128 --detach_coordinate 400 350 400 350 --boxcolor b --boxwidth 5 --mae_level 16 --sam_level 16
-
-# upmosaic
-python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./ICVL/1/result/mat/mosaic/ --save_path ./ICVL/1/result/rgb/upmosaic/ --data_type upmosaic --data_id peppers_0503-1330.mat --detach --detach_size 128 128 --detach_coordinate 400 350 400 350 --boxcolor r --boxwidth 5
-
-# pan
-python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./ICVL/1/result/mat/pan/ --save_path ./ICVL/1/result/rgb/pan/ --data_type pan --data_id peppers_0503-1330.mat --detach --detach_size 128 128 --detach_coordinate 400 350 400 350 --boxcolor r --boxwidth 5
-
-# gt
-python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./ICVL/1/result/mat/gt/ --save_path ./ICVL/1/result/rgb/gt/ --data_type mosaic --data_id peppers_0503-1330.mat --detach --detach_size 128 128 --detach_coordinate 400 350 400 350 --boxcolor b --boxwidth 5
 ```
 
-## KAISt
+## 🔵 Pavia
+### visualize fused
 ```
-# fused
-python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./Kaist/1/result/mat/fused/ --save_path ./Kaist/1/result/rgb/fused/ --data_type fused --data_id scene21_reflectance.mat --detach --detach_size 256 256 --detach_coordinate 1250 2450 1250 2450 --boxcolor b --boxwidth 8
+python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./pavia/1/result/mat/fused/ --save_path ./pavia/1/result/rgb/fused/ --data_type fused --data_id 1.mat --detach --detach_size 25 25  --detach_coordinate 20 60 20 60 --boxcolor b --boxwidth 1
+```
 
-# diffmap
-python visualize.py --visual_task diffmap --spatial_ratio 8 --mat_path ./Kaist/1/result/mat/fused/ --mat_path_for_diff ./Kaist/1/result/mat/gt/ --save_path ./Kaist/1/result/rgb/diffmap/ --data_id scene21_reflectance.mat --detach --detach_size 256 256 --detach_coordinate 1250 2450 1250 2450 --boxcolor b --boxwidth 8 --mae_level 16 --sam_level 100
+### visualize diffmap
+```
+python visualize.py --visual_task diffmap --spatial_ratio 8 --mat_path ./pavia/1/result/mat/fused/ --mat_path_for_diff ./pavia/1/result/mat/gt/ --save_path ./pavia/1/result/rgb/diffmap/ --data_id 1.mat --detach --detach_size 25 25  --detach_coordinate 20 60 20 60 --boxcolor b --boxwidth 1 --mae_level 64 --sam_level 64
+```
 
-# upmosaic
-python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./Kaist/1/result/mat/mosaic/ --save_path ./Kaist/1/result/rgb/upmosaic/ --data_type upmosaic --data_id scene21_reflectance.mat --detach --detach_size 256 256 --detach_coordinate 1250 2450 1250 2450 --boxcolor r --boxwidth 8
+### visualize upmosaic
+```
+python visualize.py --visual_task rgb --spatial_ratio 8 --data_type upmosaic --mat_path ./pavia/1/result/mat/mosaic/ --save_path ./pavia/1/result/rgb/upmosaic/ --data_type upmosaic --data_id 1.mat --detach --detach_size 25 25  --detach_coordinate 20 60 20 60 --boxcolor b --boxwidth 1
+```
 
-# pan
-python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./Kaist/1/result/mat/pan/ --save_path ./Kaist/1/result/rgb/pan/ --data_type pan --data_id scene21_reflectance.mat --detach --detach_size 256 256 --detach_coordinate 1250 2450 1250 2450 --boxcolor r --boxwidth 8
+### visualize pan
+```
+python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./pavia/1/result/mat/pan/ --save_path ./pavia/1/result/rgb/pan/ --data_type pan --data_id 1.mat --detach --detach_size 25 25  --detach_coordinate 20 60 20 60 --boxcolor b --boxwidth 1
+```
 
-# gt
-python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./Kaist/1/result/mat/gt/ --save_path ./Kaist/1/result/rgb/gt/ --data_type mosaic --data_id scene21_reflectance.mat --detach --detach_size 256 256 --detach_coordinate 1250 2450 1250 2450 --boxcolor b --boxwidth 8
+### visualize gt
+```
+python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./pavia/1/result/mat/gt/ --save_path ./pavia/1/result/rgb/gt/ --data_type mosaic --data_id 1.mat --detach --detach_size 25 25  --detach_coordinate 20 60 20 60 --boxcolor b --boxwidth 1
+```
+
+## 🟠 Chikusei
+### visualize fused
+```
+python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./chikusei/1/result/mat/fused/ --save_path ./chikusei/1/result/rgb/fused/ --data_type fused --data_id 2.mat --detach --detach_size 50 50  --detach_coordinate 100 250 100 250 --boxcolor b --boxwidth 2
+```
+
+### visualize diffmap
+```
+python visualize.py --visual_task diffmap --spatial_ratio 8 --mat_path ./chikusei/1/result/mat/fused/ --mat_path_for_diff ./chikusei/1/result/mat/gt/ --save_path ./chikusei/1/result/rgb/diffmap/ --data_id 2.mat --detach --detach_size 50 50  --detach_coordinate 100 250 100 250 --boxcolor b --boxwidth 2 --mae_level 64 --sam_level 64
+```
+
+### visualize upmosaic
+```
+python visualize.py --visual_task rgb --spatial_ratio 8 --data_type upmosaic --mat_path ./chikusei/1/result/mat/mosaic/ --save_path ./chikusei/1/result/rgb/upmosaic/ --data_type upmosaic --data_id 2.mat --detach --detach_size 50 50  --detach_coordinate 100 250 100 250 --boxcolor b --boxwidth 2
+```
+
+### visualize pan
+```
+python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./chikusei/1/result/mat/pan/ --save_path ./chikusei/1/result/rgb/pan/ --data_type pan --data_id 2.mat --detach --detach_size 50 50  --detach_coordinate 100 250 100 250 --boxcolor b --boxwidth 2
+```
+
+### visualize gt
+```
+python visualize.py --visual_task rgb --spatial_ratio 8 --mat_path ./chikusei/1/result/mat/gt/ --save_path ./chikusei/1/result/rgb/gt/ --data_type mosaic --data_id 2.mat --detach --detach_size 50 50  --detach_coordinate 100 250 100 250 --boxcolor b --boxwidth 2
+```

@@ -24,107 +24,56 @@ def main(args):
 
     device = "cpu" if args.cpu == True else f"cuda:{args.device}"
 
-    if args.simulate == True:
-        mosaic_path = os.path.join(args.data_path, "mosaic")
-        pan_path = os.path.join(args.data_path, "pan")
-        fused_path = os.path.join(args.data_path, "fused")
-        gt_path = os.path.join(args.data_path, "gt")
+    mosaic_path = os.path.join(args.data_path, "mosaic")
+    pan_path = os.path.join(args.data_path, "pan")
+    fused_path = os.path.join(args.data_path, "fused")
+    gt_path = os.path.join(args.data_path, "gt")
 
-        mosaic_names = [file for file in os.listdir(mosaic_path) if file in args.data_id]
-        pan_names = [file for file in os.listdir(pan_path) if file in args.data_id]
-        fused_names = [file for file in os.listdir(fused_path) if file in args.data_id]
-        gt_names = [file for file in os.listdir(gt_path) if file in args.data_id]
-        
-        if mosaic_names == []:
-            mosaic_names = os.listdir(mosaic_path)
-            pan_names = os.listdir(pan_path)
-            fused_names = os.listdir(fused_path)
-            gt_names = os.listdir(gt_path)
-            print("To be tested: ALL. ", mosaic_names)
-        mosaic_names.sort()
-        pan_names.sort()
-        fused_names.sort()
-        gt_names.sort()
-
-        psnr_avg, ssim_avg, sam_avg, ergas_avg = 0, 0, 0, 0
-        for mosaic_name, pan_name, fused_name, gt_name in tqdm.tqdm(tzip(mosaic_names, pan_names, fused_names, gt_names)):
-            mosaic = scio.loadmat(os.path.join(mosaic_path, mosaic_name))["mosaic"]
-            pan = scio.loadmat(os.path.join(pan_path, pan_name))["pan"]
-            fused = scio.loadmat(os.path.join(fused_path, fused_name))["fused"]
-            gt = scio.loadmat(os.path.join(gt_path, gt_name))["gt"]
-
-            mosaic_tensor = torch.from_numpy(mosaic.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0)
-            mosaic_tensor = torch.nn.functional.pixel_shuffle(mosaic_tensor, upscale_factor=msfa_kernel.shape[2]//2)
-            pan_tensor = torch.from_numpy(pan.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0)
-            fused_tensor = torch.from_numpy(fused.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0)
-            gt_tensor = torch.from_numpy(gt.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0)
-
-            psnr_avg += quality_index.calc_psnr(gt_tensor, fused_tensor).item()
-            ssim_avg += quality_index.calc_ssim(gt_tensor, fused_tensor).item()
-            sam_avg += quality_index.calc_sam(gt_tensor, fused_tensor).item()
-            ergas_avg += quality_index.calc_ergas(gt_tensor, fused_tensor).item()
-
-        psnr_avg /= len(mosaic_names)
-        ssim_avg /= len(mosaic_names)
-        sam_avg /= len(mosaic_names)
-        ergas_avg /= len(mosaic_names)
-        
-        print("PSNR: ", psnr_avg,
-              "SSIM: ", ssim_avg,
-              "SAM: ", sam_avg,
-              "ERGAS: ", ergas_avg,
-              )
-         
-    elif args.real_world == True:
-        mosaic_path = os.path.join(args.data_path, "mosaic")
-        pan_path = os.path.join(args.data_path, "pan")
-        fused_path = os.path.join(args.data_path, "fused")
+    mosaic_names = [file for file in os.listdir(mosaic_path) if file in args.data_id]
+    pan_names = [file for file in os.listdir(pan_path) if file in args.data_id]
+    fused_names = [file for file in os.listdir(fused_path) if file in args.data_id]
+    gt_names = [file for file in os.listdir(gt_path) if file in args.data_id]
+    
+    if mosaic_names == []:
         mosaic_names = os.listdir(mosaic_path)
         pan_names = os.listdir(pan_path)
         fused_names = os.listdir(fused_path)
+        gt_names = os.listdir(gt_path)
+        print("To be tested: ALL. ", mosaic_names)
+    mosaic_names.sort()
+    pan_names.sort()
+    fused_names.sort()
+    gt_names.sort()
 
-        mosaic_path = os.path.join(args.data_path, "mosaic")
-        pan_path = os.path.join(args.data_path, "pan")
-        fused_path = os.path.join(args.data_path, "fused")
+    psnr_avg, ssim_avg, sam_avg, ergas_avg = 0, 0, 0, 0
+    for mosaic_name, pan_name, fused_name, gt_name in tqdm.tqdm(tzip(mosaic_names, pan_names, fused_names, gt_names)):
+        mosaic = scio.loadmat(os.path.join(mosaic_path, mosaic_name))["mosaic"]
+        pan = scio.loadmat(os.path.join(pan_path, pan_name))["pan"]
+        fused = scio.loadmat(os.path.join(fused_path, fused_name))["fused"]
+        gt = scio.loadmat(os.path.join(gt_path, gt_name))["gt"]
 
-        mosaic_names = [file for file in os.listdir(mosaic_path) if file in args.data_id]
-        pan_names = [file for file in os.listdir(pan_path) if file in args.data_id]
-        fused_names = [file for file in os.listdir(fused_path) if file in args.data_id]
-        if mosaic_names != []:
-            print("To be tested: ", args.data_id)
-        else:
-            mosaic_names = os.listdir(mosaic_path)
-            pan_names = os.listdir(pan_path)
-            fused_names = os.listdir(fused_path)
-            print("To be tested: ALL. ", mosaic_names)
-        mosaic_names.sort()
-        pan_names.sort()
-        fused_names.sort()
+        mosaic_tensor = torch.from_numpy(mosaic.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0)
+        mosaic_tensor = torch.nn.functional.pixel_shuffle(mosaic_tensor, upscale_factor=msfa_kernel.shape[2]//2)
+        pan_tensor = torch.from_numpy(pan.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0)
+        fused_tensor = torch.from_numpy(fused.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0)
+        gt_tensor = torch.from_numpy(gt.astype(numpy.float32)).permute(2, 0, 1).unsqueeze(0)
 
-        qnr_avg, d_lambda_avg, d_s_avg = 0, 0, 0
-        for mosaic_name, pan_name, fused_name in tqdm.tqdm(tzip(mosaic_names, pan_names, fused_names)):
-            mosaic = scio.loadmat(os.path.join(mosaic_path, mosaic_name))["mosaic"]
-            pan = scio.loadmat(os.path.join(pan_path, pan_name))["pan"]
-            fused = scio.loadmat(os.path.join(fused_path, fused_name))["fused"]
+        psnr_avg += quality_index.calc_psnr(gt_tensor, fused_tensor).item()
+        ssim_avg += quality_index.calc_ssim(gt_tensor, fused_tensor).item()
+        sam_avg += quality_index.calc_sam(gt_tensor, fused_tensor).item()
+        ergas_avg += quality_index.calc_ergas(gt_tensor, fused_tensor).item()
 
-            mosaic_tensor = torch.from_numpy(mosaic.astype(numpy.float64)).permute(2, 0, 1).unsqueeze(0)
-            mosaic_tensor = torch.nn.functional.pixel_shuffle(mosaic_tensor, upscale_factor=msfa_kernel.shape[2]//2)
-            pan_tensor = torch.from_numpy(pan.astype(numpy.float64)).permute(2, 0, 1).unsqueeze(0)
-            fused_tensor = torch.from_numpy(fused.astype(numpy.float64)).permute(2, 0, 1).unsqueeze(0)
-
-            qnr, f_lambda, d_s = quality_index.calc_qnr_mosaic(fused_tensor.to(device), mosaic_tensor.to(device), pan_tensor.to(device), msfa_kernel.to(device), patch_size=args.patch_size, scale_factor=2)
-            qnr_avg += qnr.item()
-            d_lambda_avg += f_lambda.item()
-            d_s_avg += d_s.item()
-
-        qnr_avg /= len(mosaic_names)
-        d_lambda_avg /= len(mosaic_names)
-        d_s_avg /= len(mosaic_names)
-        
-        print("QNR: ", qnr_avg,
-              "D_lambda: ", d_lambda_avg,
-              "D_S: ", d_s_avg)
-
+    psnr_avg /= len(mosaic_names)
+    ssim_avg /= len(mosaic_names)
+    sam_avg /= len(mosaic_names)
+    ergas_avg /= len(mosaic_names)
+    
+    print("PSNR: ", psnr_avg,
+            "SSIM: ", ssim_avg,
+            "SAM: ", sam_avg,
+            "ERGAS: ", ergas_avg,
+            )
+            
     return 
     
 if __name__ == '__main__':

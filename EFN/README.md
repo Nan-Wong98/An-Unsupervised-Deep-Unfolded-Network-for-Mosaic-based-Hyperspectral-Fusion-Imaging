@@ -1,6 +1,6 @@
 # 📖 Introduction
 
-Compared to competing methods, this proposed method is a one-step method.
+This proposed method is a one-step method.
 
 ---
 
@@ -12,12 +12,12 @@ Dataset/
 ├── CAVE/
 │ ├── train/
 │ └── test/
-├── ICVL/
+├── pavia/
 │ ├── train/
 │ └── test/
-└── real_world/
-├── train/
-└── test/
+├── chikusei/
+│ ├── train/
+│ └── test/
 ```
 
 ## 🚀 Usage

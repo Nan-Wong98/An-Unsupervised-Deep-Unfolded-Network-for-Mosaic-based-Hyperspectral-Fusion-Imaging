@@ -15,12 +15,12 @@ Dataset/
 ├── CAVE/
 │ ├── train/
 │ └── test/
-├── ICVL/
+├── pavia/
 │ ├── train/
 │ └── test/
-└── real_world/
-├── train/
-└── test/
+├── chikusei/
+│ ├── train/
+│ └── test/
 ```
 
 ## 🚀 Usage

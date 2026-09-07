@@ -29,7 +29,7 @@ Each project folder follows the exact same file structure and logic:
 | `visualize.py` | 🎨 **Visualization:** Visualizes the generated HSI and MAE map results. |
 
 ## 📦 Pretrained Weights
-Pretrained weights of all the fusion methods are packaged in [Release](https://github.com/Nan-Wong98/Equivariant-High-Resolution-Hyperspectral-Imaging-via-Mosaiced-and-PAN-Image-Fusion/releases). Please refer to the directory mapping below:
+Pretrained weights of all the fusion methods are packaged in [Release](https://github.com/Nan-Wong98/An-Unsupervised-Deep-Unfolded-Network-for-Mosaic-based-Hyperspectral-Fusion-Imaging/releases/tag/tag). Please refer to the directory mapping below:
 
 ### Competing Methods
 Two stage: demosaicing + pansharpening
